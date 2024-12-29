@@ -5,8 +5,36 @@ from app.models import EventMarket
 
 logger = logging.getLogger(__name__)
 
+SPORTS_KEYWORDS = [
+    'nfl', 'nba', 'mlb', 'nhl',
+    'soccer', 'football', 'basketball',
+    'baseball', 'tennis', 'hockey',
+    'championship', 'league', 'team',
+    'match', 'game', 'tournament',
+    'sports', 'playoff', 'world cup',
+    'finals', 'super bowl'
+]
+
 class GammaClient:
     """Client for interacting with Polymarket's Gamma API."""
+
+    @staticmethod
+    def is_sports_market(event: Dict[str, Any]) -> bool:
+        """
+        Check if an event is sports-related based on its title/question.
+        
+        Args:
+            event (Dict[str, Any]): Event data from Gamma API
+            
+        Returns:
+            bool: True if the event is sports-related, False otherwise
+        """
+        # Check both title and question fields
+        title = event.get('title', '').lower()
+        question = event.get('question', '').lower()
+        
+        # Check both fields for sports keywords
+        return any(keyword in title or keyword in question for keyword in SPORTS_KEYWORDS)
     
     def __init__(self):
         self.base_url = "https://gamma-api.polymarket.com"
@@ -66,4 +94,37 @@ class GammaClient:
                     return EventMarket.from_gamma_event(event_data)
         except aiohttp.ClientError as e:
             logger.error(f"Error fetching event {event_id} from Gamma API: {str(e)}")
+            raise
+
+    async def fetch_sports_markets(self, closed: bool = False) -> List[EventMarket]:
+        """
+        Fetch and filter sports-related markets from Gamma API, sorted by open interest.
+        
+        Args:
+            closed (bool): If True, include closed events. Defaults to False.
+            
+        Returns:
+            List[EventMarket]: List of sports-related events sorted by open interest (descending)
+        """
+        try:
+            # Fetch all events first
+            events = await self.fetch_events(closed=closed)
+            
+            # Filter sports events and convert to list for sorting
+            sports_events = [
+                event for event in events 
+                if self.is_sports_market(event.model_dump())
+            ]
+            
+            # Sort by open interest (descending)
+            sports_events.sort(
+                key=lambda e: float(e.open_interest or 0), 
+                reverse=True
+            )
+            
+            logger.info(f"Found {len(sports_events)} sports markets")
+            return sports_events
+            
+        except Exception as e:
+            logger.error(f"Error fetching sports markets: {str(e)}")
             raise
