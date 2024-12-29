@@ -6,13 +6,41 @@ from app.models import EventMarket
 logger = logging.getLogger(__name__)
 
 SPORTS_KEYWORDS = [
-    'nfl', 'nba', 'mlb', 'nhl',
-    'soccer', 'football', 'basketball',
-    'baseball', 'tennis', 'hockey',
-    'championship', 'league', 'team',
-    'match', 'game', 'tournament',
-    'sports', 'playoff', 'world cup',
-    'finals', 'super bowl'
+    # Leagues
+    'nfl', 'nba', 'mlb', 'nhl', 'mls',
+    'premier league', 'la liga', 'bundesliga', 'serie a',
+    
+    # Sports
+    'soccer', 'football', 'basketball', 'baseball',
+    'tennis', 'hockey', 'golf', 'boxing', 'ufc',
+    'racing', 'formula 1', 'f1', 'nascar',
+    
+    # Events
+    'championship', 'league', 'tournament',
+    'match', 'game', 'playoff', 'playoffs',
+    'world cup', 'finals', 'super bowl',
+    'all-star', 'all star', 'draft',
+    
+    # NFL Teams
+    'bills', 'dolphins', 'patriots', 'jets',
+    'ravens', 'bengals', 'browns', 'steelers',
+    'titans', 'colts', 'texans', 'jaguars',
+    'chiefs', 'raiders', 'chargers', 'broncos',
+    'cowboys', 'eagles', 'commanders', 'giants',
+    'vikings', 'packers', 'bears', 'lions',
+    'buccaneers', 'saints', 'falcons', 'panthers',
+    '49ers', 'seahawks', 'rams', 'cardinals',
+    
+    # NBA Teams
+    'celtics', 'nets', 'knicks', 'raptors',
+    'bucks', 'cavaliers', 'hawks', 'heat',
+    'warriors', 'clippers', 'suns', 'lakers',
+    'nuggets', 'timberwolves', 'thunder', 'jazz',
+    
+    # General Terms
+    'score', 'win', 'winner', 'champion',
+    'roster', 'trade', 'transfer', 'season',
+    'coach', 'player', 'team', 'sports'
 ]
 
 class GammaClient:
@@ -129,24 +157,38 @@ class GammaClient:
         Returns:
             List[EventMarket]: List of sports-related events sorted by open interest (descending)
         """
+        url = f"{self.base_url}/events"
+        if not closed:
+            url += "?closed=false"
+            
         try:
-            # Fetch all events first
-            events = await self.fetch_events(closed=closed)
-            
-            # Filter sports events and convert to list for sorting
-            sports_events = [
-                event for event in events 
-                if self.is_sports_market(event.model_dump())
-            ]
-            
-            # Sort by open interest (descending)
-            sports_events.sort(
-                key=lambda e: float(e.open_interest or 0), 
-                reverse=True
-            )
-            
-            logger.info(f"Found {len(sports_events)} sports markets")
-            return sports_events
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    response.raise_for_status()
+                    events_data = await response.json()
+                    if not isinstance(events_data, list):
+                        events_data = []
+                    
+                    # Filter sports events from raw data before conversion
+                    sports_events_data = [
+                        event for event in events_data 
+                        if self.is_sports_market(event)
+                    ]
+                    
+                    # Convert filtered events to EventMarket objects
+                    sports_events = [
+                        EventMarket.from_gamma_event(event)
+                        for event in sports_events_data
+                    ]
+                    
+                    # Sort by open interest (descending)
+                    sports_events.sort(
+                        key=lambda e: float(e.open_interest or 0), 
+                        reverse=True
+                    )
+                    
+                    logger.info(f"Found {len(sports_events)} sports markets")
+                    return sports_events
             
         except Exception as e:
             logger.error(f"Error fetching sports markets: {str(e)}")
