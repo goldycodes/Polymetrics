@@ -21,20 +21,30 @@ class GammaClient:
     @staticmethod
     def is_sports_market(event: Dict[str, Any]) -> bool:
         """
-        Check if an event is sports-related based on its title/question.
+        Check if an event is sports-related based on its question and description.
         
         Args:
-            event (Dict[str, Any]): Event data from Gamma API
+            event (Dict[str, Any]): Event data from EventMarket model
             
         Returns:
             bool: True if the event is sports-related, False otherwise
         """
-        # Check both title and question fields
-        title = event.get('title', '').lower()
-        question = event.get('question', '').lower()
+        # Log the event structure for debugging
+        logger.debug(f"Checking event data: {event}")
+        
+        # Check question and description fields (title is mapped to question in EventMarket)
+        question = str(event.get('question', '')).lower()
+        description = str(event.get('description', '')).lower()
+        
+        # Log the extracted fields
+        logger.debug(f"Checking question: {question}")
+        logger.debug(f"Checking description: {description}")
         
         # Check both fields for sports keywords
-        return any(keyword in title or keyword in question for keyword in SPORTS_KEYWORDS)
+        is_sports = any(keyword in question or keyword in description for keyword in SPORTS_KEYWORDS)
+        if is_sports:
+            logger.info(f"Found sports market - Question: {question}, Description: {description}")
+        return is_sports
     
     def __init__(self):
         self.base_url = "https://gamma-api.polymarket.com"
