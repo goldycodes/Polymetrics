@@ -100,19 +100,59 @@ class ClobClient:
             List of market data dictionaries
         """
         try:
+            # Build query parameters
             params = {
                 "page": page,
-                "limit": limit,
-                "status": status
+                "limit": limit
             }
             
-            if category:
-                params["category"] = category
-                
-            response = await self._make_request("GET", "markets", params)
-            markets = response.get("data", [])
+            # Only include status if explicitly provided
+            if status:
+                params["status"] = status.lower()
             
-            logger.info(f"Retrieved {len(markets)} markets from CLOB API")
+            if category:
+                params["category"] = category.lower()
+                
+            logger.debug(f"Requesting markets with params: {params}")
+            response = await self._make_request("GET", "markets", params)
+            raw_markets = response.get("data", [])
+            logger.debug(f"Raw markets sample: {str(raw_markets[:2])}")
+            
+            logger.info(f"Retrieved {len(raw_markets)} markets from CLOB API")
+            
+            # Transform markets to match Market interface
+            markets = []
+            for market in raw_markets:
+                try:
+                    # Get trader information
+                    trades_info = await self.get_market_trades(market["id"])
+                    trader_count = trades_info.get("unique_traders", 0)
+                    
+                    transformed_market = {
+                        "id": str(market.get("id", "")),
+                        "question": market.get("question", ""),
+                        "description": market.get("description"),
+                        "volume": str(market.get("volume", "0")),
+                        "open_interest": str(market.get("open_interest", "0")),
+                        "tokens": [
+                            {
+                                "token_id": str(token.get("id", "")),
+                                "name": token.get("name", ""),
+                                "price": str(token.get("price", "0"))
+                            }
+                            for token in market.get("tokens", [])
+                        ],
+                        "is_active": market.get("status", "").lower() == "active",
+                        "event_status": market.get("status", "unknown"),
+                        "created_at": market.get("created_at", ""),
+                        "expires_at": market.get("expires_at"),
+                        "category": market.get("category", "other"),
+                        "trader_count": trader_count
+                    }
+                    markets.append(transformed_market)
+                except Exception as e:
+                    logger.error(f"Error transforming market {market.get('id')}: {str(e)}")
+                    continue
             
             # Apply sorting if requested
             if sort_by == "volume":
