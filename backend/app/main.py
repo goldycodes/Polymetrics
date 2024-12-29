@@ -1,24 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Any, Optional
 from enum import Enum
 import aiohttp
+import asyncio
 import logging
 
-class SortDirection(str, Enum):
-    ASC = "asc"
-    DESC = "desc"
-
-class MarketCategory(str, Enum):
-    SPORTS = "sports"
-    CRYPTO = "crypto"
-    POLITICS = "politics"
-    ENTERTAINMENT = "entertainment"
-    OTHER = "other"
-
-class SortBy(str, Enum):
-    VOLUME = "volume"
-    CREATED_AT = "created_at"
+# Removed unused enums for simplified MVP implementation
 
 from .polymarket_graphql import PolymarketGraphQLClient
 from .gamma_client import GammaClient
@@ -97,36 +85,15 @@ async def get_market_orders(market_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/clob/markets")
-async def get_clob_markets(
-    page: int = 1,
-    limit: int = 10,
-    status: str = "active",
-    category: Optional[MarketCategory] = None,
-    sort_by: Optional[SortBy] = None,
-    sort_direction: SortDirection = SortDirection.DESC
-):
+async def get_clob_markets():
     """
-    Get markets from CLOB API with pagination, filtering, and sorting.
-    
-    Args:
-        page: Page number for pagination
-        limit: Number of items per page
-        status: Market status filter ('active', 'closed', etc.)
-        category: Optional category filter
-        sort_by: Optional field to sort by
-        sort_direction: Sort direction (asc/desc)
+    Get current active markets from CLOB API.
+    Returns basic market info for MVP version.
     """
     try:
         async with clob_client as client:
-            markets = await client.get_markets(
-                page=page,
-                limit=limit,
-                status=status,
-                category=category.value if category else None,
-                sort_by=sort_by.value if sort_by else None,
-                sort_direction=sort_direction.value
-            )
-            return markets
+            markets = await client.get_markets()
+            return {"markets": markets}
     except Exception as e:
         logger.error(f"Error in get_clob_markets: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
