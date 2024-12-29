@@ -76,14 +76,25 @@ class ClobClient:
                 detail=f"Failed to connect to CLOB API: {str(e)}"
             )
 
-    async def get_markets(self, page: int = 1, limit: int = 10, status: str = "active") -> List[Dict[str, Any]]:
+    async def get_markets(
+        self,
+        page: int = 1,
+        limit: int = 10,
+        status: str = "active",
+        category: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_direction: str = "desc"
+    ) -> List[Dict[str, Any]]:
         """
-        Get current markets from the CLOB API.
+        Get current markets from the CLOB API with filtering and sorting.
         
         Args:
             page: Page number for pagination
             limit: Number of markets per page
             status: Market status filter ('active', 'closed', etc.)
+            category: Optional category filter (e.g., 'sports', 'crypto', etc.)
+            sort_by: Optional field to sort by (e.g., 'volume')
+            sort_direction: Sort direction ('asc' or 'desc')
             
         Returns:
             List of market data dictionaries
@@ -95,10 +106,21 @@ class ClobClient:
                 "status": status
             }
             
+            if category:
+                params["category"] = category
+                
             response = await self._make_request("GET", "markets", params)
             markets = response.get("data", [])
             
             logger.info(f"Retrieved {len(markets)} markets from CLOB API")
+            
+            # Apply sorting if requested
+            if sort_by == "volume":
+                markets.sort(
+                    key=lambda x: float(x.get("volume", "0")),
+                    reverse=(sort_direction == "desc")
+                )
+                
             return markets
             
         except Exception as e:
