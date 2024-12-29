@@ -84,6 +84,24 @@ async def get_market_orders(market_id: str):
         logger.error(f"Error in get_market_orders: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/gamma/markets/sports", response_model=List[EventMarket])
+async def get_sports_markets(current_only: bool = True):
+    """
+    Get sports-related markets from Gamma API, sorted by open interest.
+    
+    Args:
+        current_only (bool): If True, return only current (non-closed) markets. Defaults to True.
+        
+    Returns:
+        List[EventMarket]: List of sports markets sorted by open interest (descending)
+    """
+    try:
+        sports_events = await gamma_client.fetch_sports_markets(closed=not current_only)
+        return sports_events
+    except Exception as e:
+        logger.error(f"Error in get_sports_markets: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/clob/markets")
 async def get_clob_markets():
     """
@@ -113,7 +131,7 @@ async def get_clob_market_history(
                 days=days
             )
             return history
-    except Exception as e:
+    except Exception as e: 
         logger.error(f"Error in get_clob_market_history: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
