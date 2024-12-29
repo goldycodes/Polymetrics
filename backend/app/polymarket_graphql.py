@@ -61,6 +61,9 @@ class PolymarketGraphQLClient:
             
     async def fetch_current_markets(self) -> List[Dict]:
         """Fetch current and active markets using CLOB API"""
+        if not self._session:
+            self._session = aiohttp.ClientSession()
+            
         try:
             async with self._session.get(f"{self.CLOB_API_URL}/markets") as response:
                 if response.status != 200:
@@ -72,50 +75,22 @@ class PolymarketGraphQLClient:
                 active_markets = []
                 
                 for market in markets_data:
-                    if market.get("active", False):
-                        market_data = {
-                            "id": market.get("marketId"),
-                            "question": market.get("question"),
-                            "outcomes": market.get("outcomes", []),
-                            "volume": market.get("volume", "0"),
-                            "prices": market.get("prices", []),
-                            "created": market.get("createdAt"),
-                            "lastActive": market.get("updatedAt")
-                        }
-                        active_markets.append(market_data)
+                    market_data = {
+                        "id": market.get("marketId"),
+                        "question": market.get("question"),
+                        "outcomes": market.get("outcomes", []),
+                        "volume": market.get("volume", "0"),
+                        "prices": market.get("prices", []),
+                        "created": market.get("createdAt"),
+                        "lastActive": market.get("updatedAt"),
+                        "active": market.get("active", False),
+                        "closed": not market.get("active", False)
+                    }
+                    active_markets.append(market_data)
                 
                 return active_markets
         except Exception as e:
             logger.error(f"Error fetching current markets from CLOB API: {str(e)}")
-            return []
-        
-        variables = {
-            "minTimestamp": str(min_timestamp),
-            "recentActivity": str(recent_activity)
-        }
-        
-        try:
-            data = await self._execute_query(query, variables)
-            markets_data = data.get("fixedProductMarketMakers", [])
-            
-            # Filter out resolved markets and transform data
-            active_markets = []
-            for market in markets_data:
-                if market.get("condition"):
-                    market_data = {
-                        "id": market["id"],
-                        "question": market["condition"]["question"],
-                        "outcomes": market["condition"]["outcomes"],
-                        "volume": market["collateralVolume"],
-                        "prices": market["outcomeTokenPrices"],
-                        "created": market["creationTimestamp"],
-                        "lastActive": market["lastActiveTimestamp"]
-                    }
-                    active_markets.append(market_data)
-            
-            return active_markets
-        except Exception as e:
-            logger.error(f"Error fetching current markets: {str(e)}")
             return []
             
     async def get_market_open_interest(self, market_id: str) -> Optional[float]:
