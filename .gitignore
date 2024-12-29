@@ -1,1 +1,5 @@
 frontend/node_modules/\nfrontend/.vite/\n**/__pycache__\n*.pyc
+node_modules/
+__pycache__/
+frontend/node_modules/.package-lock.json
+frontend/tsconfig.tsbuildinfo
