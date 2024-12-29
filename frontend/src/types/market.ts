@@ -4,6 +4,11 @@ export interface MarketToken {
   price: string;
 }
 
+export interface OpenInterestPoint {
+  timestamp: number;
+  value: number;
+}
+
 export interface Market {
   id: string;
   question: string;
