@@ -9,6 +9,10 @@ export interface OpenInterestPoint {
   value: number;
 }
 
+export type MarketCategory = 'sports' | 'crypto' | 'politics' | 'entertainment' | 'other';
+export type SortDirection = 'asc' | 'desc';
+export type SortBy = 'volume' | 'created_at';
+
 export interface Market {
   id: string;
   question: string;
@@ -20,4 +24,5 @@ export interface Market {
   event_status: string;
   created_at: string;
   expires_at: string | null;
+  category?: MarketCategory;
 }
