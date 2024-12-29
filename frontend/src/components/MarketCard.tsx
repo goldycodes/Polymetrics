@@ -2,10 +2,8 @@ import { Market } from "../types/market";
 
 export function MarketCard({ market }: { market: Market }) {
   console.log('Rendering market:', market);
-  const formatNumber = (value: string | null | undefined) => {
-    if (!value) return 'N/A';
+  const formatCurrency = (value: string) => {
     const num = parseFloat(value);
-    if (isNaN(num)) return 'N/A';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -14,51 +12,48 @@ export function MarketCard({ market }: { market: Market }) {
     }).format(num);
   };
 
+  const getStatusColor = (status: string, isActive: boolean) => {
+    if (isActive) return 'bg-green-100 text-green-800';
+    if (status === 'resolved') return 'bg-blue-100 text-blue-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  const getDisplayStatus = (status: string, isActive: boolean) => {
+    if (isActive) return 'Active';
+    if (status === 'resolved') return 'Resolved';
+    return status || 'Unknown';
+  };
+
   return (
-    <div className="w-full p-4 border rounded-lg shadow-sm bg-white">
-      <div className="mb-4">
-        <div className="flex justify-between items-start">
-          <h3 className="text-lg font-semibold">{market.question}</h3>
-          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-            market.is_active
-              ? 'bg-green-500 text-white'
-              : market.event_status === 'resolved'
-              ? 'bg-gray-200 text-gray-700'
-              : 'bg-gray-100 text-gray-600'
-          }`}>
-            {market.is_active
-              ? 'Active'
-              : market.event_status === 'resolved'
-              ? 'Resolved'
-              : 'Inactive'}
-          </span>
-        </div>
-        <p className="mt-2 text-sm text-gray-600">{market.description}</p>
+    <div className="w-full p-4 border rounded-lg shadow-sm bg-white hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-lg font-semibold flex-grow">{market.question}</h3>
+        <span className={`px-2 py-1 rounded text-sm ${getStatusColor(market.event_status, market.is_active)}`}>
+          {getDisplayStatus(market.event_status, market.is_active)}
+        </span>
       </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      
+      <div className="grid grid-cols-3 gap-4">
         <div>
-          <div className="text-sm font-medium">Volume</div>
-          <div className="text-lg">{formatNumber(market.volume)}</div>
+          <div className="text-sm font-medium text-gray-600">Volume</div>
+          <div className="text-lg font-semibold">{formatCurrency(market.volume || '0')}</div>
         </div>
         <div>
-          <div className="text-sm font-medium">Open Interest</div>
-          <div className="text-lg">{formatNumber(market.open_interest)}</div>
+          <div className="text-sm font-medium text-gray-600">Open Interest</div>
+          <div className="text-lg font-semibold">{formatCurrency(market.open_interest || '0')}</div>
+        </div>
+        <div>
+          <div className="text-sm font-medium text-gray-600">Traders</div>
+          <div className="text-lg font-semibold">{market.trader_count?.toLocaleString() || 'N/A'}</div>
         </div>
       </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        {market.tokens.map((token) => (
-          <div
-            key={token.token_id}
-            className="flex justify-between items-center p-2 bg-gray-50 rounded"
-          >
-            <span className="font-medium">{token.name}</span>
-            <span className="text-sm">
-              {(parseFloat(token.price) * 100).toFixed(1)}%
-            </span>
-          </div>
-        ))}
+      
+      <div className="mt-4">
+        <span className={`px-2 py-1 rounded text-sm ${
+          market.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+        }`}>
+          {market.event_status || (market.is_active ? 'Active' : 'Inactive')}
+        </span>
       </div>
     </div>
   );
