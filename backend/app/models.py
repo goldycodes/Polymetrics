@@ -16,6 +16,11 @@ class Market(BaseModel):
     open_interest: Optional[str] = None
     tokens: List[MarketToken]
     is_active: bool = True
+    event_status: Optional[str] = "unknown"
+    created_at: Optional[str] = ""
+    expires_at: Optional[str] = None
+    category: Optional[str] = "other"
+    trader_count: Optional[int] = 0
 
 class EventMarket(BaseModel):
     """Represents a market from the Gamma API with additional event-level details."""
