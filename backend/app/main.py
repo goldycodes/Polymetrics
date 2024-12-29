@@ -1,11 +1,28 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from enum import Enum
 import aiohttp
 import logging
 
+class SortDirection(str, Enum):
+    ASC = "asc"
+    DESC = "desc"
+
+class MarketCategory(str, Enum):
+    SPORTS = "sports"
+    CRYPTO = "crypto"
+    POLITICS = "politics"
+    ENTERTAINMENT = "entertainment"
+    OTHER = "other"
+
+class SortBy(str, Enum):
+    VOLUME = "volume"
+    CREATED_AT = "created_at"
+
 from .polymarket_graphql import PolymarketGraphQLClient
 from .gamma_client import GammaClient
+from .clob_client import ClobClient
 from .models import EventMarket
 
 # Configure logging
@@ -18,6 +35,7 @@ logger = logging.getLogger(__name__)
 # Initialize clients
 polymarket_client = PolymarketGraphQLClient()
 gamma_client = GammaClient()
+clob_client = ClobClient()
 
 app = FastAPI()
 
@@ -76,4 +94,75 @@ async def get_market_orders(market_id: str):
             return {"open_interest": orders}
     except Exception as e:
         logger.error(f"Error in get_market_orders: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/clob/markets")
+async def get_clob_markets(
+    page: int = 1,
+    limit: int = 10,
+    status: str = "active",
+    category: Optional[MarketCategory] = None,
+    sort_by: Optional[SortBy] = None,
+    sort_direction: SortDirection = SortDirection.DESC
+):
+    """
+    Get markets from CLOB API with pagination, filtering, and sorting.
+    
+    Args:
+        page: Page number for pagination
+        limit: Number of items per page
+        status: Market status filter ('active', 'closed', etc.)
+        category: Optional category filter
+        sort_by: Optional field to sort by
+        sort_direction: Sort direction (asc/desc)
+    """
+    try:
+        async with clob_client as client:
+            markets = await client.get_markets(
+                page=page,
+                limit=limit,
+                status=status,
+                category=category.value if category else None,
+                sort_by=sort_by.value if sort_by else None,
+                sort_direction=sort_direction.value
+            )
+            return markets
+    except Exception as e:
+        logger.error(f"Error in get_clob_markets: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/clob/markets/{market_id}/history")
+async def get_clob_market_history(
+    market_id: str,
+    resolution: str = "1D",
+    days: int = 7
+):
+    """Get historical data for a specific CLOB market."""
+    try:
+        async with clob_client as client:
+            history = await client.get_market_history(
+                market_id=market_id,
+                resolution=resolution,
+                days=days
+            )
+            return history
+    except Exception as e:
+        logger.error(f"Error in get_clob_market_history: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/clob/markets/{market_id}/trades")
+async def get_clob_market_trades(
+    market_id: str,
+    limit: int = 100
+):
+    """Get recent trades for a specific CLOB market."""
+    try:
+        async with clob_client as client:
+            trades = await client.get_market_trades(
+                market_id=market_id,
+                limit=limit
+            )
+            return trades
+    except Exception as e:
+        logger.error(f"Error in get_clob_market_trades: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

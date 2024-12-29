@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getMarkets, fetchGammaMarkets } from "./lib/api";
-import { Market } from "./types/market";
+import { Market, MarketCategory, SortBy, SortDirection } from "./types/market";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MarketCard } from "./components/MarketCard";
 
 function App() {
@@ -9,11 +10,14 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showCurrentOnly, setShowCurrentOnly] = useState(true);
   const [marketSource, setMarketSource] = useState<'clob' | 'gamma'>('gamma');
+  const [category, setCategory] = useState<MarketCategory>();
+  const [sortBy, setSortBy] = useState<SortBy>();
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
 
   useEffect(() => {
     fetchMarkets();
-  }, [marketSource, showCurrentOnly]);
+  }, [marketSource, showCurrentOnly, category, sortBy, sortDirection]);
 
   async function fetchMarkets() {
     try {
@@ -22,7 +26,7 @@ function App() {
         data = await fetchGammaMarkets(showCurrentOnly);
         console.log('Fetched Gamma markets:', data);
       } else {
-        data = await getMarkets();
+        data = await getMarkets(category, sortBy, sortDirection);
         console.log('Fetched CLOB markets:', data);
       }
       console.log('Setting markets state:', data);
@@ -56,6 +60,39 @@ function App() {
           >
             {showCurrentOnly ? "Show All Markets" : "Show Current Markets"}
           </button>
+          
+          <Select value={category} onValueChange={(value) => setCategory(value as MarketCategory)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sports">Sports</SelectItem>
+              <SelectItem value="crypto">Crypto</SelectItem>
+              <SelectItem value="politics">Politics</SelectItem>
+              <SelectItem value="entertainment">Entertainment</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="volume">Volume</SelectItem>
+              <SelectItem value="created_at">Created Date</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortDirection} onValueChange={(value) => setSortDirection(value as SortDirection)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort direction" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="asc">Ascending</SelectItem>
+              <SelectItem value="desc">Descending</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       
