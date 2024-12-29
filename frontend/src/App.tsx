@@ -3,6 +3,7 @@ import { getMarkets, fetchGammaMarkets } from "./lib/api";
 import { Market, MarketCategory, SortBy, SortDirection } from "./types/market";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MarketCard } from "./components/MarketCard";
+import { MarketChart } from "./components/MarketChart";
 
 function App() {
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -106,20 +107,45 @@ function App() {
         {(() => {
           console.log('Markets before filter:', markets);
           const filteredMarkets = markets.filter(market => {
-            console.log('Filtering market:', market.id, market.is_active);
-            return !showCurrentOnly || market.is_active;
+            if (!market) return false;
+            
+            // Handle both CLOB and Gamma market formats
+            const isActive = marketSource === 'gamma'
+              ? market.is_active
+              : market.event_status?.toLowerCase() === 'active';
+            
+            // Add detailed logging for debugging
+            console.log('Filtering market:', {
+              id: market.id,
+              source: marketSource,
+              isActive,
+              status: market.event_status,
+              volume: market.volume,
+              openInterest: market.open_interest,
+              traderCount: market.trader_count || market.tokens?.length || 0
+            });
+            
+            // Apply category filter if selected
+            if (category && market.category !== category) {
+              return false;
+            }
+            
+            return !showCurrentOnly || isActive;
           });
           console.log('Filtered markets:', filteredMarkets);
           return (
-            <div 
-              data-testid="market-grid" 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-            >
-              {filteredMarkets.map((market) => {
-                console.log('Rendering market:', market.id);
-                return <MarketCard key={market.id} market={market} />;
-              })}
-            </div>
+            <>
+              <MarketChart markets={filteredMarkets} loading={loading} />
+              <div 
+                data-testid="market-grid" 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8"
+              >
+                {filteredMarkets.map((market) => {
+                  console.log('Rendering market:', market.id);
+                  return <MarketCard key={market.id} market={market} loading={loading} />;
+                })}
+              </div>
+            </>
           );
         })()}
       </div>

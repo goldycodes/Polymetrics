@@ -1,6 +1,6 @@
 import { Market } from "../types/market";
 
-export function MarketCard({ market }: { market: Market }) {
+export function MarketCard({ market, loading }: { market: Market; loading?: boolean }) {
   console.log('Rendering market:', market);
   const formatNumber = (value: string | null | undefined) => {
     if (!value) return 'N/A';

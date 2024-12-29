@@ -25,4 +25,6 @@ export interface Market {
   created_at: string;
   expires_at: string | null;
   category?: MarketCategory;
+  traders?: string[];  // Array of unique trader addresses
+  trader_count?: number;  // Total number of unique traders
 }
