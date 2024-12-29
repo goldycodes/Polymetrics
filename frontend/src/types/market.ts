@@ -1,27 +1,18 @@
 export interface MarketToken {
-  outcome: string;
-  price: number;
-}
-
-export interface OpenInterestPoint {
-  timestamp: string;
-  value: number;
+  token_id: string;
+  name: string;
+  price: string;
 }
 
 export interface Market {
-  condition_id: string;
+  id: string;
   question: string;
-  description: string;
-  active: boolean;
-  closed: boolean;
-  archived: boolean;
-  accepting_orders: boolean;
-  end_date_iso: string | null;
-  game_start_time: string | null;
-  market_slug: string;
+  description: string | null;
+  volume: string | null;
+  open_interest?: string | null;
   tokens: MarketToken[];
-  volume: number;
-  open_interest: number;
-  trader_count: number;
-  open_interest_history: OpenInterestPoint[];
+  is_active: boolean;
+  event_status: string;
+  created_at: string;
+  expires_at: string | null;
 }

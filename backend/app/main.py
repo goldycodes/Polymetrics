@@ -5,7 +5,8 @@ import aiohttp
 import logging
 
 from .polymarket_graphql import PolymarketGraphQLClient
-import logging
+from .gamma_client import GammaClient
+from .models import EventMarket
 
 # Configure logging
 logging.basicConfig(
@@ -13,7 +14,10 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-client = PolymarketGraphQLClient()
+
+# Initialize clients
+polymarket_client = PolymarketGraphQLClient()
+gamma_client = GammaClient()
 
 app = FastAPI()
 
@@ -30,12 +34,30 @@ app.add_middleware(
 async def healthz():
     return {"status": "ok"}
 
+@app.get("/gamma/markets", response_model=List[EventMarket])
+async def get_gamma_markets(current_only: bool = True):
+    """
+    Get markets from Gamma API.
+    
+    Args:
+        current_only (bool): If True, return only current (non-closed) markets. Defaults to True.
+        
+    Returns:
+        List[EventMarket]: List of markets with their details
+    """
+    try:
+        events = await gamma_client.fetch_events(closed=not current_only)
+        return events
+    except Exception as e:
+        logger.error(f"Error in get_gamma_markets: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/markets")
 async def get_markets():
     """Get all active markets from Polymarket."""
     try:
-        async with client as graphql_client:
-            markets = await graphql_client.fetch_current_markets()
+        async with polymarket_client as client:
+            markets = await client.fetch_current_markets()
             if not markets:
                 return []
             return markets
@@ -47,8 +69,8 @@ async def get_markets():
 async def get_market_orders(market_id: str):
     """Get order book data for a specific market."""
     try:
-        async with client as graphql_client:
-            orders = await graphql_client.get_market_open_interest(market_id)
+        async with polymarket_client as client:
+            orders = await client.get_market_open_interest(market_id)
             if orders is None:
                 return {}
             return {"open_interest": orders}
