@@ -71,10 +71,23 @@ class GammaClient:
                     if not isinstance(events_data, list):
                         events_data = []
                     
+                    # Log raw event data before conversion
+                    logger.debug("Raw events data from Gamma API:")
+                    for event in events_data:
+                        logger.debug(f"Raw event data:")
+                        logger.debug(f"  ID: {event.get('id')}")
+                        logger.debug(f"  Title: {event.get('title')}")
+                        logger.debug(f"  Description: {event.get('description')}")
+                        logger.debug(f"  Status: {event.get('status')}")
+                        logger.debug("---")
+                    
                     events = []
                     for event in events_data:
                         market = EventMarket.from_gamma_event(event)
-                        logger.debug(f"Market {market.id} active status: {market.is_active}")
+                        logger.debug(f"Converted market {market.id}:")
+                        logger.debug(f"  Question: {market.question}")
+                        logger.debug(f"  Description: {market.description}")
+                        logger.debug(f"  Active: {market.is_active}")
                         events.append(market)
                     logger.debug(f"Fetched and converted {len(events)} events from Gamma API")
                     return events
