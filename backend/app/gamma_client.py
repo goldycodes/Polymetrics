@@ -6,35 +6,84 @@ from app.models import EventMarket
 logger = logging.getLogger(__name__)
 
 SPORTS_KEYWORDS = [
-    'nfl', 'nba', 'mlb', 'nhl',
-    'soccer', 'football', 'basketball',
-    'baseball', 'tennis', 'hockey',
-    'championship', 'league', 'team',
-    'match', 'game', 'tournament',
-    'sports', 'playoff', 'world cup',
-    'finals', 'super bowl'
+    # Leagues
+    'nfl', 'nba', 'mlb', 'nhl', 'ncaa', 'ufc',
+    # Sports
+    'soccer', 'football', 'basketball', 'baseball',
+    'tennis', 'hockey', 'mma', 'boxing', 'rugby',
+    # General terms
+    'championship', 'league', 'team', 'match',
+    'game', 'tournament', 'sports', 'playoff',
+    'finals', 'super bowl', 'world cup', 'score',
+    # NBA Teams
+    'lakers', 'warriors', 'celtics', 'bulls', 'nets',
+    'knicks', 'heat', 'suns', 'mavericks', 'clippers',
+    # NFL Teams
+    'patriots', 'cowboys', 'eagles', 'chiefs', '49ers',
+    'packers', 'steelers', 'ravens', 'broncos', 'raiders',
+    # Soccer Teams/Leagues
+    'premier league', 'la liga', 'bundesliga',
+    'manchester united', 'liverpool', 'arsenal',
+    'real madrid', 'barcelona', 'bayern',
+    # Betting terms
+    'win', 'points', 'score', 'odds', 'spread',
+    'moneyline', 'over/under', 'prop', 'parlay'
 ]
 
 class GammaClient:
     """Client for interacting with Polymarket's Gamma API."""
 
     @staticmethod
-    def is_sports_market(event: Dict[str, Any]) -> bool:
+    def is_sports_market(event: Dict[str, Any] | EventMarket) -> bool:
         """
         Check if an event is sports-related based on its title/question.
         
         Args:
-            event (Dict[str, Any]): Event data from Gamma API
+            event (Dict[str, Any] | EventMarket): Event data from Gamma API or EventMarket model
             
         Returns:
             bool: True if the event is sports-related, False otherwise
         """
-        # Check both title and question fields
-        title = event.get('title', '').lower()
-        question = event.get('question', '').lower()
+        # Handle both dict and EventMarket types
+        if isinstance(event, EventMarket):
+            question = event.question.lower() if event.question else ''
+            description = event.description.lower() if event.description else ''
+        else:
+            question = event.get('question', '').lower()
+            description = event.get('description', '').lower()
+            
+        logger.debug(f"Checking if market is sports-related - Question: {question}")
+        logger.debug(f"Description: {description}")
         
-        # Check both fields for sports keywords
-        return any(keyword in title or keyword in question for keyword in SPORTS_KEYWORDS)
+        # Group keywords by category
+        league_keywords = {'nfl', 'nba', 'mlb', 'nhl', 'ncaa', 'ufc', 'premier league', 'la liga', 'bundesliga'}
+        team_keywords = {
+            'lakers', 'warriors', 'celtics', 'bulls', 'nets', 'knicks', 'heat', 'suns', 'mavericks', 'clippers',
+            'patriots', 'cowboys', 'eagles', 'chiefs', '49ers', 'packers', 'steelers', 'ravens', 'broncos', 'raiders',
+            'manchester united', 'liverpool', 'arsenal', 'real madrid', 'barcelona', 'bayern'
+        }
+        sport_keywords = {'soccer', 'football', 'basketball', 'baseball', 'tennis', 'hockey', 'mma', 'boxing', 'rugby'}
+        
+        # Check for strong indicators (league or team names)
+        text = f"{question} {description}"
+        league_matches = {kw for kw in league_keywords if kw in text}
+        team_matches = {kw for kw in team_keywords if kw in text}
+        sport_matches = {kw for kw in sport_keywords if kw in text}
+        
+        # If we find a league or team name, it's definitely a sports market
+        if league_matches or team_matches:
+            logger.info(f"Sports market found! League keywords: {league_matches}, Team keywords: {team_matches}")
+            logger.info(f"Question: {question}")
+            return True
+            
+        # If we find a sport name and some context, it's probably a sports market
+        if sport_matches and any(kw in text for kw in ['match', 'game', 'score', 'win', 'championship', 'tournament']):
+            logger.info(f"Sports market found! Sport keywords: {sport_matches}")
+            logger.info(f"Question: {question}")
+            return True
+            
+        logger.debug(f"No sports keywords found in market")
+        return False
     
     def __init__(self):
         self.base_url = "https://gamma-api.polymarket.com"
@@ -107,14 +156,17 @@ class GammaClient:
             List[EventMarket]: List of sports-related events sorted by open interest (descending)
         """
         try:
+            logger.info("Fetching sports markets...")
             # Fetch all events first
             events = await self.fetch_events(closed=closed)
+            logger.info(f"Fetched {len(events)} total events")
             
             # Filter sports events and convert to list for sorting
-            sports_events = [
-                event for event in events 
-                if self.is_sports_market(event.model_dump())
-            ]
+            sports_events = []
+            for event in events:
+                logger.debug(f"Processing event: {event.question}")
+                if self.is_sports_market(event):
+                    sports_events.append(event)
             
             # Sort by open interest (descending)
             sports_events.sort(
@@ -123,8 +175,13 @@ class GammaClient:
             )
             
             logger.info(f"Found {len(sports_events)} sports markets")
+            if sports_events:
+                logger.info("Top sports markets:")
+                for idx, event in enumerate(sports_events[:3], 1):
+                    logger.info(f"{idx}. {event.question} (Open Interest: {event.open_interest})")
             return sports_events
             
         except Exception as e:
             logger.error(f"Error fetching sports markets: {str(e)}")
-            raise
+            logger.exception("Full traceback:")
+            return []
