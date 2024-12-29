@@ -1,42 +1,27 @@
-export interface Token {
+export interface MarketToken {
   outcome: string;
   price: number;
 }
 
+export interface OpenInterestPoint {
+  timestamp: string;
+  value: number;
+}
+
 export interface Market {
-  id: string;
+  condition_id: string;
   question: string;
   description: string;
-  endDate: string;
+  active: boolean;
+  closed: boolean;
+  archived: boolean;
+  accepting_orders: boolean;
+  end_date_iso: string | null;
+  game_start_time: string | null;
+  market_slug: string;
+  tokens: MarketToken[];
   volume: number;
   open_interest: number;
   trader_count: number;
-  tokens: Token[];
-  creationTimestamp: string;
-  lastActiveDay: string;
-  scaledCollateralVolume: string;
-  outcomeTokenPrices: string[];
-  tradesQuantity: string;
-  condition: {
-    id: string;
-    question: string;
-    resolutionTimestamp: string;
-  } | null;
-}
-
-export interface OrderBook {
-  bids: Array<{
-    price: number;
-    size: number;
-  }>;
-  asks: Array<{
-    price: number;
-    size: number;
-  }>;
-}
-
-export interface MarketStats {
-  volume: number;
-  open_interest: number;
-  trader_count: number;
+  open_interest_history: OpenInterestPoint[];
 }
