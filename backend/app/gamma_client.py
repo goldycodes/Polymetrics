@@ -55,14 +55,9 @@ class GammaClient:
         logger.debug(f"Checking if market is sports-related - Question: {question}")
         logger.debug(f"Description: {description}")
         
-        # Group keywords by category
-        league_keywords = {'nfl', 'nba', 'mlb', 'nhl', 'ncaa', 'ufc', 'premier league', 'la liga', 'bundesliga'}
-        team_keywords = {
-            'lakers', 'warriors', 'celtics', 'bulls', 'nets', 'knicks', 'heat', 'suns', 'mavericks', 'clippers',
-            'patriots', 'cowboys', 'eagles', 'chiefs', '49ers', 'packers', 'steelers', 'ravens', 'broncos', 'raiders',
-            'manchester united', 'liverpool', 'arsenal', 'real madrid', 'barcelona', 'bayern'
-        }
-        sport_keywords = {'soccer', 'football', 'basketball', 'baseball', 'tennis', 'hockey', 'mma', 'boxing', 'rugby'}
+        # Use global SPORTS_KEYWORDS list
+        keywords = set(SPORTS_KEYWORDS)  # Convert to set for faster lookups
+        logger.debug(f"Using {len(keywords)} sports-related keywords")
         
         # Check for strong indicators (league or team names)
         text = f"{question} {description}".lower()  # Ensure case-insensitive matching
@@ -70,24 +65,14 @@ class GammaClient:
         logger.debug(f"Checking text for sports keywords: {text}")
         logger.debug(f"Words found in text: {words}")
         
-        # Check for partial matches (e.g., "NFL" in "NFL's")
-        league_matches = {kw for kw in league_keywords if any(kw in word for word in words)}
-        team_matches = {kw for kw in team_keywords if any(kw in word for word in words)}  # Fixed: was using team_matches instead of team_keywords
-        sport_matches = {kw for kw in sport_keywords if any(kw in word for word in words)}
+        # Check for keyword matches in the text
+        matches = {kw for kw in keywords if any(kw.lower() in word for word in words)}
         
-        logger.debug(f"Found league matches: {league_matches}")
-        logger.debug(f"Found team matches: {team_matches}")
-        logger.debug(f"Found sport matches: {sport_matches}")
+        logger.debug(f"Found keyword matches: {matches}")
         
-        # If we find a league or team name, it's definitely a sports market
-        if league_matches or team_matches:
-            logger.info(f"Sports market found! League keywords: {league_matches}, Team keywords: {team_matches}")
-            logger.info(f"Question: {question}")
-            return True
-            
-        # If we find a sport name and some context, it's probably a sports market
-        if sport_matches and any(kw in text for kw in ['match', 'game', 'score', 'win', 'championship', 'tournament']):
-            logger.info(f"Sports market found! Sport keywords: {sport_matches}")
+        # If we find any sports-related keywords, consider it a sports market
+        if matches:
+            logger.info(f"Sports market found! Keywords: {matches}")
             logger.info(f"Question: {question}")
             return True
             
