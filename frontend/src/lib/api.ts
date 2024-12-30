@@ -1,6 +1,6 @@
 import { Market } from '../types/market';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Helper function to log detailed error information
 const logDetailedError = (error: any, context: string) => {
