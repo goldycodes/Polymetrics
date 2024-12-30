@@ -12,36 +12,25 @@ export function MarketCard({ market }: { market: Market }) {
     }).format(num);
   };
 
-  const getStatusColor = (isActive?: boolean) => {
-    return isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
-  };
-
-  const getDisplayStatus = (isActive?: boolean) => {
-    return isActive ? 'Active' : 'Inactive';
-  };
-
   return (
-    <div className="w-full p-6 border rounded-xl shadow-sm bg-white hover:shadow-lg transition-shadow">
-      <div className="flex justify-between items-start mb-6">
-        <h3 className="text-xl font-bold text-gray-900 flex-grow pr-4">{market.question}</h3>
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(market.isActive)}`}>
-          {getDisplayStatus(market.isActive)}
-        </span>
+    <div className="w-full p-8 border border-gray-200 rounded-2xl bg-white hover:shadow-xl transition-all duration-300 hover:border-indigo-100">
+      <div className="mb-8">
+        <h3 className="text-xl font-bold text-gray-900 leading-relaxed hover:text-indigo-600 transition-colors">{market.question}</h3>
       </div>
       
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <div className="text-sm font-medium text-gray-500 mb-1">Volume</div>
-          <div className="text-2xl font-bold text-gray-900">{formatCurrency(market.volume || '0')}</div>
+      <div className="grid grid-cols-2 gap-8">
+        <div className="p-6 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-100 hover:border-indigo-100 transition-colors">
+          <div className="text-sm font-semibold text-indigo-600 uppercase tracking-wide mb-2">Volume</div>
+          <div className="text-3xl font-bold text-gray-900">{formatCurrency(market.volume || '0')}</div>
         </div>
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <div className="text-sm font-medium text-gray-500 mb-1">Open Interest</div>
-          <div className="text-2xl font-bold text-gray-900">{formatCurrency(market.openInterest || '0')}</div>
+        <div className="p-6 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-100 hover:border-indigo-100 transition-colors">
+          <div className="text-sm font-semibold text-indigo-600 uppercase tracking-wide mb-2">Open Interest</div>
+          <div className="text-3xl font-bold text-gray-900">{formatCurrency(market.openInterest || '0')}</div>
         </div>
       </div>
       
       {market.description && (
-        <div className="text-sm text-gray-600 border-t pt-4">
+        <div className="mt-8 text-sm text-gray-600 border-t border-gray-100 pt-6">
           {market.description.slice(0, 150)}...
         </div>
       )}
