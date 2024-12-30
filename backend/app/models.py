@@ -51,8 +51,7 @@ class EventMarket(BaseModel):
             open_interest=str(event.get("liquidity", "0")),
             tokens=tokens,
             is_active=(
-                event.get("status", "unknown") == "unknown" and
-                (float(event.get("volume", "0")) > 0 or float(event.get("liquidity", "0")) > 0)
+                event.get("active", False) is True
             ),
             event_id=event["id"],
             event_status=event.get("status", "unknown"),

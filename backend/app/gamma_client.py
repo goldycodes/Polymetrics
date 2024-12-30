@@ -6,28 +6,38 @@ from app.models import EventMarket
 logger = logging.getLogger(__name__)
 
 SPORTS_KEYWORDS = [
-    # Leagues
-    'nfl', 'nba', 'mlb', 'nhl', 'ncaa', 'ufc',
+    # Leagues with full names
+    'national football league', 'national basketball association',
+    'major league baseball', 'national hockey league',
+    'ultimate fighting championship',
+    # League abbreviations
+    'nfl', 'nba', 'mlb', 'nhl', 'ncaa', 'ufc', 'pga',
     # Sports
-    'soccer', 'football', 'basketball', 'baseball',
-    'tennis', 'hockey', 'mma', 'boxing', 'rugby',
-    # General terms
-    'championship', 'league', 'team', 'match',
-    'game', 'tournament', 'sports', 'playoff',
-    'finals', 'super bowl', 'world cup', 'score',
-    # NBA Teams
-    'lakers', 'warriors', 'celtics', 'bulls', 'nets',
-    'knicks', 'heat', 'suns', 'mavericks', 'clippers',
-    # NFL Teams
-    'patriots', 'cowboys', 'eagles', 'chiefs', '49ers',
-    'packers', 'steelers', 'ravens', 'broncos', 'raiders',
-    # Soccer Teams/Leagues
-    'premier league', 'la liga', 'bundesliga',
-    'manchester united', 'liverpool', 'arsenal',
-    'real madrid', 'barcelona', 'bayern',
-    # Betting terms
-    'win', 'points', 'score', 'odds', 'spread',
-    'moneyline', 'over/under', 'prop', 'parlay'
+    'football', 'basketball', 'baseball', 'hockey',
+    'soccer', 'tennis', 'golf', 'boxing', 'mma',
+    # Specific sports terms
+    'touchdown', 'field goal', 'quarterback', 'rushing',
+    'three pointer', 'slam dunk', 'home run', 'pitcher',
+    'goal keeper', 'penalty kick', 'grand slam',
+    # Team identifiers
+    'team', 'roster', 'coach', 'player', 'draft',
+    # Event types
+    'game', 'match', 'tournament', 'championship',
+    'playoff', 'finals', 'super bowl', 'world cup',
+    'world series', 'all star game',
+    # NBA Teams (full names)
+    'los angeles lakers', 'golden state warriors',
+    'boston celtics', 'chicago bulls', 'brooklyn nets',
+    'new york knicks', 'miami heat', 'phoenix suns',
+    # NFL Teams (full names)
+    'new england patriots', 'dallas cowboys',
+    'philadelphia eagles', 'kansas city chiefs',
+    'san francisco 49ers', 'green bay packers',
+    'pittsburgh steelers', 'baltimore ravens',
+    # Soccer Teams/Leagues (full names)
+    'english premier league', 'la liga',
+    'manchester united', 'liverpool fc',
+    'real madrid', 'barcelona'
 ]
 
 class GammaClient:
@@ -55,34 +65,43 @@ class GammaClient:
         logger.debug(f"Checking if market is sports-related - Question: {question}")
         logger.debug(f"Description: {description}")
         
-        # Group keywords by category
-        league_keywords = {'nfl', 'nba', 'mlb', 'nhl', 'ncaa', 'ufc', 'premier league', 'la liga', 'bundesliga'}
-        team_keywords = {
-            'lakers', 'warriors', 'celtics', 'bulls', 'nets', 'knicks', 'heat', 'suns', 'mavericks', 'clippers',
-            'patriots', 'cowboys', 'eagles', 'chiefs', '49ers', 'packers', 'steelers', 'ravens', 'broncos', 'raiders',
-            'manchester united', 'liverpool', 'arsenal', 'real madrid', 'barcelona', 'bayern'
-        }
-        sport_keywords = {'soccer', 'football', 'basketball', 'baseball', 'tennis', 'hockey', 'mma', 'boxing', 'rugby'}
+        # Use global SPORTS_KEYWORDS list
+        keywords = set(SPORTS_KEYWORDS)  # Convert to set for faster lookups
+        logger.debug(f"Using {len(keywords)} sports-related keywords")
         
         # Check for strong indicators (league or team names)
-        text = f"{question} {description}"
-        league_matches = {kw for kw in league_keywords if kw in text}
-        team_matches = {kw for kw in team_keywords if kw in text}
-        sport_matches = {kw for kw in sport_keywords if kw in text}
+        text = f"{question} {description}".lower()  # Ensure case-insensitive matching
+        words = set(text.split())  # Split into words for partial matching
+        logger.info(f"Checking text for sports keywords: {text}")
+        logger.info(f"Words found in text: {words}")
         
-        # If we find a league or team name, it's definitely a sports market
-        if league_matches or team_matches:
-            logger.info(f"Sports market found! League keywords: {league_matches}, Team keywords: {team_matches}")
+        # Split keywords that contain spaces into separate terms
+        expanded_keywords = set()
+        for kw in keywords:
+            if ' ' in kw:
+                # For multi-word keywords, check if the entire phrase is in the text
+                if kw.lower() in text:
+                    logger.info(f"Found multi-word match: {kw}")
+                    expanded_keywords.add(kw)
+            else:
+                # For single words, check if they appear as whole words
+                word_pattern = f"\\b{kw.lower()}\\b"
+                if any(word.lower() == kw.lower() for word in words):
+                    logger.info(f"Found single-word match: {kw}")
+                    expanded_keywords.add(kw)
+        
+        # Check for exact word matches
+        matches = expanded_keywords
+        
+        logger.info(f"Found keyword matches: {matches}")
+        
+        # Temporarily reduce requirement to 1 match for testing
+        if len(matches) >= 1:
+            logger.info(f"Sports market found! Keywords: {matches}")
             logger.info(f"Question: {question}")
             return True
             
-        # If we find a sport name and some context, it's probably a sports market
-        if sport_matches and any(kw in text for kw in ['match', 'game', 'score', 'win', 'championship', 'tournament']):
-            logger.info(f"Sports market found! Sport keywords: {sport_matches}")
-            logger.info(f"Question: {question}")
-            return True
-            
-        logger.debug(f"No sports keywords found in market")
+        logger.debug(f"No sports keywords found in market (or insufficient matches)")
         return False
     
     def __init__(self):

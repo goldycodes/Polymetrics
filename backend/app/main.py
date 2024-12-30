@@ -90,7 +90,17 @@ async def get_sports_markets(current_only: bool = True):
         List[EventMarket]: List of sports markets sorted by open interest (descending)
     """
     try:
+        logger.info("Handling request for sports markets...")
+        # First get all markets to inspect the data
+        all_events = await gamma_client.fetch_events(closed=not current_only)
+        logger.debug(f"Fetched {len(all_events)} total events")
+        for event in all_events[:3]:  # Log first 3 events for debugging
+            logger.debug(f"Sample event - Question: {event.question}")
+            logger.debug(f"Sample event - Description: {event.description}")
+            logger.debug(f"Sample event - Active: {event.is_active}")
+            
         sports_events = await gamma_client.fetch_sports_markets(closed=not current_only)
+        logger.info(f"Found {len(sports_events)} sports markets")
         return sports_events
     except Exception as e:
         logger.error(f"Error in get_sports_markets: {str(e)}")

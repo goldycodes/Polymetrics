@@ -1,6 +1,4 @@
-import { OpenInterestPoint } from "../types/market";
-
-export function MarketChart(_props: { data: OpenInterestPoint[] }) {
+export function MarketChart() {
   return (
     <div className="p-4 border rounded">
       <h3 className="text-lg font-semibold mb-4">Open Interest History</h3>
