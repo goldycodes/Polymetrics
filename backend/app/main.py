@@ -40,7 +40,7 @@ app.add_middleware(
 async def healthz():
     return {"status": "ok"}
 
-@app.get("/gamma/markets", response_model=List[EventMarket])
+@app.get("/markets/gamma", response_model=List[EventMarket])
 async def get_gamma_markets(current_only: bool = True):
     """
     Get markets from Gamma API.
@@ -58,33 +58,27 @@ async def get_gamma_markets(current_only: bool = True):
         logger.error(f"Error in get_gamma_markets: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/markets")
-async def get_markets():
-    """Get all active markets from Polymarket."""
+@app.get("/markets/gamma/{market_id}", response_model=EventMarket)
+async def get_gamma_market(market_id: str):
+    """
+    Get a specific market by ID from Gamma API.
+    
+    Args:
+        market_id (str): The ID of the market to fetch
+        
+    Returns:
+        EventMarket: Market details if found
+    """
     try:
-        async with polymarket_client as client:
-            markets = await client.fetch_current_markets()
-            if not markets:
-                return []
-            return markets
+        market = await gamma_client.fetch_event_by_id(market_id)
+        if market is None:
+            raise HTTPException(status_code=404, detail="Market not found")
+        return market
     except Exception as e:
-        logger.error(f"Error in get_markets: {str(e)}")
+        logger.error(f"Error in get_gamma_market: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/markets/{market_id}/orders")
-async def get_market_orders(market_id: str):
-    """Get order book data for a specific market."""
-    try:
-        async with polymarket_client as client:
-            orders = await client.get_market_open_interest(market_id)
-            if orders is None:
-                return {}
-            return {"open_interest": orders}
-    except Exception as e:
-        logger.error(f"Error in get_market_orders: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/gamma/markets/sports", response_model=List[EventMarket])
+@app.get("/markets/gamma/sports", response_model=List[EventMarket])
 async def get_sports_markets(current_only: bool = True):
     """
     Get sports-related markets from Gamma API, sorted by open interest.
