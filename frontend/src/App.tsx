@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getMarkets, getSportsMarkets, getMarketById } from "./lib/api";
+import { getMarkets, getMarketById } from "./lib/api";
 import { Market } from "./types/market";
 import { MarketCard } from "./components/MarketCard";
 
@@ -7,17 +7,8 @@ function App() {
   const [markets, setMarkets] = useState<Market[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [showSportsOnly, setShowSportsOnly] = useState(false);
   const [searchId, setSearchId] = useState('');
   const [searchError, setSearchError] = useState('');
-
-  // Reset search when toggling between all/sports markets
-  useEffect(() => {
-    if (searchId) {
-      setSearchId('');
-      setSearchError('');
-    }
-  }, [showSportsOnly]);
 
   useEffect(() => {
     if (!searchId) {
@@ -29,12 +20,19 @@ function App() {
     try {
       const marketsData = await getMarkets();
       console.log('Fetched markets:', marketsData);
-      if (Array.isArray(marketsData) && marketsData.length > 0) {
-        setMarkets(marketsData);
-        setError("");
-      } else if (Array.isArray(marketsData) && marketsData.length === 0) {
-        console.warn('No markets returned from API');
-        setError("No active markets found. This could be due to rate limiting. Please try again in a few minutes.");
+      if (Array.isArray(marketsData)) {
+        const activeMarkets = marketsData.filter(market => 
+          market.isActive || 
+          (market.status === "unknown" && (parseFloat(market.volume || "0") > 0 || parseFloat(market.liquidity || "0") > 0))
+        );
+        
+        if (activeMarkets.length > 0) {
+          setMarkets(activeMarkets);
+          setError("");
+        } else {
+          console.warn('No active markets found');
+          setError("No active markets found at this time.");
+        }
       } else {
         console.error('Unexpected data format:', marketsData);
         setError("Unable to load markets. Please try again later.");
@@ -47,37 +45,7 @@ function App() {
     }
   }
 
-  async function fetchSportsMarkets() {
-    try {
-      const marketsData = await getSportsMarkets();
-      console.log('Fetched sports markets:', marketsData);
-      if (Array.isArray(marketsData) && marketsData.length > 0) {
-        setMarkets(marketsData);
-        setError("");
-      } else if (Array.isArray(marketsData) && marketsData.length === 0) {
-        console.warn('No sports markets returned from API');
-        setError("No active sports markets found at this time.");
-      } else {
-        console.error('Unexpected data format:', marketsData);
-        setError("Unable to load sports markets. Please try again later.");
-      }
-    } catch (err) {
-      console.error('Error fetching sports markets:', err);
-      setError("Failed to fetch sports markets. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  }
 
-  const toggleMarketView = () => {
-    setLoading(true);
-    setShowSportsOnly(!showSportsOnly);
-    if (!showSportsOnly) {
-      fetchSportsMarkets();
-    } else {
-      fetchMarkets();
-    }
-  };
 
   if (loading) {
     return <div className="p-8">Loading markets...</div>;
@@ -106,53 +74,53 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col space-y-6">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-extrabold text-gray-900">Polymarket Dashboard</h1>
-            <button
-              onClick={toggleMarketView}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-            >
-              {showSportsOnly ? 'Show All Markets' : 'Show Sports Markets'}
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="flex flex-col space-y-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-extrabold text-gray-900 mb-4">Polymarket Dashboard</h1>
+            <p className="text-lg text-gray-600">Track live market data and statistics</p>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <div className="flex-1 max-w-md">
-              <label htmlFor="market-search" className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="max-w-3xl mx-auto w-full">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <label htmlFor="market-search" className="block text-sm font-medium text-gray-700 mb-2">
                 Search Market by ID
               </label>
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  id="market-search"
-                  value={searchId}
-                  onChange={(e) => setSearchId(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Enter market ID..."
-                  className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
-                <button
-                  onClick={handleSearch}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Search
-                </button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    id="market-search"
+                    value={searchId}
+                    onChange={(e) => setSearchId(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    placeholder="Enter market ID..."
+                    className="w-full px-6 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSearch}
+                    disabled={loading}
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                  >
+                    {loading ? 'Searching...' : 'Search'}
+                  </button>
+                  {searchId && (
+                    <button
+                      onClick={clearSearch}
+                      className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors flex-shrink-0"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
               {searchError && (
-                <p className="mt-1 text-sm text-red-600">{searchError}</p>
+                <p className="mt-3 text-sm text-red-600 bg-red-50 p-3 rounded-lg">{searchError}</p>
               )}
             </div>
-            {searchId && (
-              <button
-                onClick={clearSearch}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                Clear Search
-              </button>
-            )}
           </div>
         </div>
         
@@ -172,8 +140,10 @@ function App() {
         )}
 
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <div className="flex justify-center items-center py-32">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-100 border-t-indigo-600"></div>
+            </div>
           </div>
         ) : markets.length === 0 ? (
           <div className="text-center py-12">
@@ -181,7 +151,7 @@ function App() {
             <p className="text-gray-500">Try changing your filters or check back later.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
             {markets.map((market) => (
               <MarketCard key={market.id} market={market} />
             ))}

@@ -8,4 +8,6 @@ export interface Market {
   categories: string[];
   createdTimestamp: string;
   isActive?: boolean;
+  status?: string;
+  liquidity?: string;
 }
