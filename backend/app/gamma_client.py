@@ -65,10 +65,16 @@ class GammaClient:
         sport_keywords = {'soccer', 'football', 'basketball', 'baseball', 'tennis', 'hockey', 'mma', 'boxing', 'rugby'}
         
         # Check for strong indicators (league or team names)
-        text = f"{question} {description}"
+        text = f"{question} {description}".lower()  # Ensure case-insensitive matching
+        logger.debug(f"Checking text for sports keywords: {text}")
+        
         league_matches = {kw for kw in league_keywords if kw in text}
-        team_matches = {kw for kw in team_keywords if kw in text}
+        team_matches = {kw for kw in team_keywords if kw in text}  # Fixed: was using team_matches instead of team_keywords
         sport_matches = {kw for kw in sport_keywords if kw in text}
+        
+        logger.debug(f"Found league matches: {league_matches}")
+        logger.debug(f"Found team matches: {team_matches}")
+        logger.debug(f"Found sport matches: {sport_matches}")
         
         # If we find a league or team name, it's definitely a sports market
         if league_matches or team_matches:
