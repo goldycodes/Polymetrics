@@ -6,28 +6,38 @@ from app.models import EventMarket
 logger = logging.getLogger(__name__)
 
 SPORTS_KEYWORDS = [
-    # Leagues
-    'nfl', 'nba', 'mlb', 'nhl', 'ncaa', 'ufc',
+    # Leagues with full names
+    'national football league', 'national basketball association',
+    'major league baseball', 'national hockey league',
+    'ultimate fighting championship',
+    # League abbreviations
+    'nfl', 'nba', 'mlb', 'nhl', 'ncaa', 'ufc', 'pga',
     # Sports
-    'soccer', 'football', 'basketball', 'baseball',
-    'tennis', 'hockey', 'mma', 'boxing', 'rugby',
-    # General terms
-    'championship', 'league', 'team', 'match',
-    'game', 'tournament', 'sports', 'playoff',
-    'finals', 'super bowl', 'world cup', 'score',
-    # NBA Teams
-    'lakers', 'warriors', 'celtics', 'bulls', 'nets',
-    'knicks', 'heat', 'suns', 'mavericks', 'clippers',
-    # NFL Teams
-    'patriots', 'cowboys', 'eagles', 'chiefs', '49ers',
-    'packers', 'steelers', 'ravens', 'broncos', 'raiders',
-    # Soccer Teams/Leagues
-    'premier league', 'la liga', 'bundesliga',
-    'manchester united', 'liverpool', 'arsenal',
-    'real madrid', 'barcelona', 'bayern',
-    # Betting terms
-    'win', 'points', 'score', 'odds', 'spread',
-    'moneyline', 'over/under', 'prop', 'parlay'
+    'football', 'basketball', 'baseball', 'hockey',
+    'soccer', 'tennis', 'golf', 'boxing', 'mma',
+    # Specific sports terms
+    'touchdown', 'field goal', 'quarterback', 'rushing',
+    'three pointer', 'slam dunk', 'home run', 'pitcher',
+    'goal keeper', 'penalty kick', 'grand slam',
+    # Team identifiers
+    'team', 'roster', 'coach', 'player', 'draft',
+    # Event types
+    'game', 'match', 'tournament', 'championship',
+    'playoff', 'finals', 'super bowl', 'world cup',
+    'world series', 'all star game',
+    # NBA Teams (full names)
+    'los angeles lakers', 'golden state warriors',
+    'boston celtics', 'chicago bulls', 'brooklyn nets',
+    'new york knicks', 'miami heat', 'phoenix suns',
+    # NFL Teams (full names)
+    'new england patriots', 'dallas cowboys',
+    'philadelphia eagles', 'kansas city chiefs',
+    'san francisco 49ers', 'green bay packers',
+    'pittsburgh steelers', 'baltimore ravens',
+    # Soccer Teams/Leagues (full names)
+    'english premier league', 'la liga',
+    'manchester united', 'liverpool fc',
+    'real madrid', 'barcelona'
 ]
 
 class GammaClient:
@@ -62,21 +72,36 @@ class GammaClient:
         # Check for strong indicators (league or team names)
         text = f"{question} {description}".lower()  # Ensure case-insensitive matching
         words = set(text.split())  # Split into words for partial matching
-        logger.debug(f"Checking text for sports keywords: {text}")
-        logger.debug(f"Words found in text: {words}")
+        logger.info(f"Checking text for sports keywords: {text}")
+        logger.info(f"Words found in text: {words}")
         
-        # Check for keyword matches in the text
-        matches = {kw for kw in keywords if any(kw.lower() in word for word in words)}
+        # Split keywords that contain spaces into separate terms
+        expanded_keywords = set()
+        for kw in keywords:
+            if ' ' in kw:
+                # For multi-word keywords, check if the entire phrase is in the text
+                if kw.lower() in text:
+                    logger.info(f"Found multi-word match: {kw}")
+                    expanded_keywords.add(kw)
+            else:
+                # For single words, check if they appear as whole words
+                word_pattern = f"\\b{kw.lower()}\\b"
+                if any(word.lower() == kw.lower() for word in words):
+                    logger.info(f"Found single-word match: {kw}")
+                    expanded_keywords.add(kw)
         
-        logger.debug(f"Found keyword matches: {matches}")
+        # Check for exact word matches
+        matches = expanded_keywords
         
-        # If we find any sports-related keywords, consider it a sports market
-        if matches:
+        logger.info(f"Found keyword matches: {matches}")
+        
+        # Temporarily reduce requirement to 1 match for testing
+        if len(matches) >= 1:
             logger.info(f"Sports market found! Keywords: {matches}")
             logger.info(f"Question: {question}")
             return True
             
-        logger.debug(f"No sports keywords found in market")
+        logger.debug(f"No sports keywords found in market (or insufficient matches)")
         return False
     
     def __init__(self):
