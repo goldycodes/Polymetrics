@@ -66,11 +66,14 @@ class GammaClient:
         
         # Check for strong indicators (league or team names)
         text = f"{question} {description}".lower()  # Ensure case-insensitive matching
+        words = set(text.split())  # Split into words for partial matching
         logger.debug(f"Checking text for sports keywords: {text}")
+        logger.debug(f"Words found in text: {words}")
         
-        league_matches = {kw for kw in league_keywords if kw in text}
-        team_matches = {kw for kw in team_keywords if kw in text}  # Fixed: was using team_matches instead of team_keywords
-        sport_matches = {kw for kw in sport_keywords if kw in text}
+        # Check for partial matches (e.g., "NFL" in "NFL's")
+        league_matches = {kw for kw in league_keywords if any(kw in word for word in words)}
+        team_matches = {kw for kw in team_keywords if any(kw in word for word in words)}  # Fixed: was using team_matches instead of team_keywords
+        sport_matches = {kw for kw in sport_keywords if any(kw in word for word in words)}
         
         logger.debug(f"Found league matches: {league_matches}")
         logger.debug(f"Found team matches: {team_matches}")
